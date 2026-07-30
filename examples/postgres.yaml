@@ -1,5 +1,5 @@
 # Complete, runnable role schema. Values are supplied by
-# cloudutil_postgres_environment in playbook.yml.
+# postgres_environment in playbook.yml.
 provider:
   name: postgres
   version: "16"

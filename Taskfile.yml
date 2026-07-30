@@ -24,4 +24,4 @@ tasks:
     cmds:
       - ruff format .
       - ruff check --fix --unsafe-fixes .
-      - ty check --extra-search-path roles/cloudutil_postgres/schemas .
+      - ty check --extra-search-path roles/postgres/schemas .

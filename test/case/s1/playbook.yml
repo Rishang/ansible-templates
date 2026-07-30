@@ -6,6 +6,6 @@
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
   roles:
-    - role: cloudutil_postgres
+    - role: postgres
       vars:
-        cloudutil_postgres_config_file: "{{ playbook_dir }}/postgres.yml"
+        postgres_config_file: "{{ playbook_dir }}/postgres.yml"

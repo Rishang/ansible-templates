@@ -1,6 +1,6 @@
 # PostgreSQL role example
 
-`playbook.yml` applies the complete `postgres.yaml` schema through the self-contained `cloudutil_postgres` role. It creates `example_app`, enables `pgcrypto`, creates reader/writer/login-only roles, grants current and future-table access, renders an included SQL template with `{{ env.EXAMPLE_APP_VERSION }}`, executes parameterized SQL, and demonstrates `inject_env: false`.
+`playbook.yml` applies the complete `postgres.yaml` schema through the self-contained `postgres` role. It creates `example_app`, enables `pgcrypto`, creates reader/writer/login-only roles, grants current and future-table access, renders an included SQL template with `{{ env.EXAMPLE_APP_VERSION }}`, executes parameterized SQL, and demonstrates `inject_env: false`.
 
 From `ansible/`, supply values and run it:
 

@@ -10,12 +10,12 @@ schemas_path = str((Path(__file__).parent.parent / "schemas").resolve())
 if schemas_path not in sys.path:
     sys.path.insert(0, schemas_path)
 
-from cloudutil_sql import cloudutil_sql_config, cloudutil_sql_config_file  # noqa: E402
+from cloudutil_sql import sql_config, sql_config_file  # noqa: E402
 
 
 class FilterModule:
     def filters(self) -> dict[str, Any]:
         return {
-            "cloudutil_sql_config": cloudutil_sql_config,
-            "cloudutil_sql_config_file": cloudutil_sql_config_file,
+            "sql_config": sql_config,
+            "sql_config_file": sql_config_file,
         }

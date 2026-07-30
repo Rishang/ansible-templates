@@ -267,28 +267,28 @@ def _validate(
     config: Mapping[str, Any], environment: Mapping[str, Any] | None
 ) -> dict[str, Any]:
     if not isinstance(config, Mapping):
-        raise ValueError("cloudutil_postgres_config must be a mapping")
+        raise ValueError("postgres_config must be a mapping")
     if environment is not None and not isinstance(environment, Mapping):
-        raise ValueError("cloudutil_postgres_environment must be a mapping")
+        raise ValueError("postgres_environment must be a mapping")
 
     with _temporary_environment(_materialize(environment or {})):
         return SQLConfig.model_validate(_materialize(config)).model_dump(mode="python")
 
 
-def cloudutil_sql_config(
+def sql_config(
     config: Mapping[str, Any], environment: Mapping[str, Any] | None = None
 ) -> dict[str, Any]:
     """Validate an inline config; SQL Jinja syntax must be marked !unsafe."""
     return _validate(config, environment)
 
 
-def cloudutil_sql_config_file(
+def sql_config_file(
     path: str | Path, environment: Mapping[str, Any] | None = None
 ) -> dict[str, Any]:
     """Load a schema YAML file without Ansible rendering its custom SQL Jinja."""
     config_path = Path(path).expanduser()
     if not config_path.is_file():
-        raise ValueError(f"cloudutil_postgres_config_file is not a file: {config_path}")
+        raise ValueError(f"postgres_config_file is not a file: {config_path}")
 
     config = yaml.safe_load(config_path.read_text())
     if not isinstance(config, Mapping):

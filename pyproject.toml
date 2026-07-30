@@ -17,4 +17,4 @@ venv = ".venv"
 
 [tool.ty.environment]
 # Mirrors the role filter plugin's runtime import path for static analysis.
-extra-paths = ["roles/cloudutil_postgres/schemas"]
+extra-paths = ["roles/postgres/schemas"]

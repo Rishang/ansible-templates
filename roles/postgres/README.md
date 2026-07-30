@@ -1,4 +1,4 @@
-# cloudutil_postgres role
+# postgres role
 
 Applies the existing CloudUtil PostgreSQL YAML schema with native `community.postgresql` modules. The role owns its Pydantic gateway, so it does not import the `cloudutil` package. `${ENV_VAR}`, SSL validation, privilege validation, `template_context`, Jinja `env`, SQL-file includes, and positional query parameters retain their existing behavior.
 
@@ -41,9 +41,9 @@ Pass the schema path to the role—do **not** use `vars_files`. This prevents An
   connection: local
   gather_facts: false
   roles:
-    - role: cloudutil_postgres
+    - role: postgres
       vars:
-        cloudutil_postgres_config_file: "{{ playbook_dir }}/postgres.yaml"
+        postgres_config_file: "{{ playbook_dir }}/postgres.yaml"
 ```
 
 Run it with values exported for `${...}` references:
@@ -59,19 +59,19 @@ For Ansible Vault or other Ansible variables, supply the values to the schema re
 
 ```yaml
 roles:
-  - role: cloudutil_postgres
+  - role: postgres
     vars:
-      cloudutil_postgres_config_file: "{{ playbook_dir }}/postgres.yaml"
-      cloudutil_postgres_environment:
+      postgres_config_file: "{{ playbook_dir }}/postgres.yaml"
+      postgres_environment:
         POSTGRES_PASSWORD: "{{ vault_postgres_password }}"
         APP_SERVICE_PASSWORD: "{{ vault_app_service_password }}"
         APP_VERSION: "{{ app_version }}"
 ```
 
-An inline schema is supported through `cloudutil_postgres_config`, but any SQL Jinja must be protected from Ansible with `!unsafe`:
+An inline schema is supported through `postgres_config`, but any SQL Jinja must be protected from Ansible with `!unsafe`:
 
 ```yaml
-cloudutil_postgres_config:
+postgres_config:
   custom_sql:
     - database: myapp
       query: !unsafe "CREATE INDEX idx_{{ table }} ON public.{{ table }} (id)"

@@ -1,4 +1,4 @@
-# Ansible: CloudUtil PostgreSQL role
+# Ansible: PostgreSQL role
 
 ## Table of contents
 
@@ -13,7 +13,7 @@
 
 ## Intro
 
-CloudUtil PostgreSQL provisioning uses the native `cloudutil_postgres` role at `roles/cloudutil_postgres`. A role-local Pydantic gateway (`schemas/cloudutil_sql.py`) validates the existing YAML schema, resolves `${ENV_VAR}`, and renders `custom_sql` before native `community.postgresql` tasks apply it. The role does **not** import or require the `cloudutil` Python package — it's fully self-contained.
+PostgreSQL provisioning uses the native `postgres` role at `roles/postgres`. A role-local Pydantic gateway (`schemas/cloudutil_sql.py`) validates the existing YAML schema, resolves `${ENV_VAR}`, and renders `custom_sql` before native `community.postgresql` tasks apply it. The role does **not** import or require the `cloudutil` Python package — it's fully self-contained.
 
 ## How it works / architecture
 
@@ -26,7 +26,7 @@ playbook
       database -> extensions -> users -> privileges -> custom_sql
 ```
 
-Pass the schema by **path** (`cloudutil_postgres_config_file`), not `vars_files` — that would let Ansible template `custom_sql`'s `{{ ... }}` before the gateway renders it with its own loader/env.
+Pass the schema by **path** (`postgres_config_file`), not `vars_files` — that would let Ansible template `custom_sql`'s `{{ ... }}` before the gateway renders it with its own loader/env.
 
 ## Getting started
 
@@ -97,39 +97,39 @@ docker run --rm --network host \
        params: [1, provisioned-by-cloudutil]
    ```
 
-2. Reference it from a playbook (same directory), passing the schema by **path** and exporting any `${VAR}` values through `cloudutil_postgres_environment`:
+2. Reference it from a playbook (same directory), passing the schema by **path** and exporting any `${VAR}` values through `postgres_environment`:
 
    ```yaml
    # playbook.yml
-   - name: Provision PostgreSQL from the CloudUtil schema
+   - name: Provision PostgreSQL from the schema
      hosts: localhost
      connection: local
      gather_facts: false
      vars:
        ansible_python_interpreter: "{{ ansible_playbook_python }}"
      roles:
-       - role: cloudutil_postgres
+       - role: postgres
          vars:
-           cloudutil_postgres_config_file: "{{ playbook_dir }}/postgres.yaml"
-           cloudutil_postgres_environment:
+           postgres_config_file: "{{ playbook_dir }}/postgres.yaml"
+           postgres_environment:
              POSTGRES_HOST: "{{ lookup('env', 'POSTGRES_HOST') }}"
              POSTGRES_USER: "{{ lookup('env', 'POSTGRES_USER') }}"
              POSTGRES_PASSWORD: "{{ vault_postgres_password }}"
              EXAMPLE_WRITER_PASSWORD: "{{ vault_example_writer_password }}"
    ```
 
-3. Export whatever values you didn't pass through `cloudutil_postgres_environment`, then run it:
+3. Export whatever values you didn't pass through `postgres_environment`, then run it:
 
    ```bash
    export POSTGRES_HOST=localhost POSTGRES_USER=postgres
    ansible-playbook -i localhost, playbook.yml
    ```
 
-`cloudutil_postgres_environment` is recommended for Ansible Vault values — it resolves `${VAR}` refs and is also visible as `{{ env.VAR }}` inside `custom_sql`. A fuller runnable sample lives at `examples/playbook.yml` + `examples/postgres.yaml`.
+`postgres_environment` is recommended for Ansible Vault values — it resolves `${VAR}` refs and is also visible as `{{ env.VAR }}` inside `custom_sql`. A fuller runnable sample lives at `examples/playbook.yml` + `examples/postgres.yaml`.
 
 ## Schemas
 
-The schema is the Pydantic `SQLConfig` model in `roles/cloudutil_postgres/schemas/cloudutil_sql.py`. Annotated shape (comments are the field descriptions straight from the model):
+The schema is the Pydantic `SQLConfig` model in `roles/postgres/schemas/cloudutil_sql.py`. Annotated shape (comments are the field descriptions straight from the model):
 
 ```yaml
 provider:
@@ -171,7 +171,7 @@ custom_sql:
     params: []                # Positional parameters bound to the SQL query for parameterized execution.
 ```
 
-`${VAR}` on `provider`/`users` fields resolves from the process environment or `cloudutil_postgres_environment`. An inline `cloudutil_postgres_config` (instead of `_config_file`) needs `!unsafe` on any Jinja inside `custom_sql.query`, since Ansible would otherwise render it before the gateway does.
+`${VAR}` on `provider`/`users` fields resolves from the process environment or `postgres_environment`. An inline `postgres_config` (instead of `_config_file`) needs `!unsafe` on any Jinja inside `custom_sql.query`, since Ansible would otherwise render it before the gateway does.
 
 ## Native module mapping
 
@@ -183,7 +183,7 @@ custom_sql:
 | `privileges` | `community.postgresql.postgresql_privs` |
 | `custom_sql.query_raw` | `community.postgresql.postgresql_query` |
 
-`tables: [ALL]` grants current-table privileges and `ALTER DEFAULT PRIVILEGES` for future tables. Default privileges belong to the connecting provider role, so create application tables with that same role. Full role contract: `roles/cloudutil_postgres/README.md`.
+`tables: [ALL]` grants current-table privileges and `ALTER DEFAULT PRIVILEGES` for future tables. Default privileges belong to the connecting provider role, so create application tables with that same role. Full role contract: `roles/postgres/README.md`.
 
 ## Testing & CI
 

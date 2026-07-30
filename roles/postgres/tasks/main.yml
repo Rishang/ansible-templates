@@ -1,0 +1,108 @@
+---
+- name: Require exactly one PostgreSQL schema input
+  ansible.builtin.assert:
+    that:
+      - >-
+        (postgres_config_file is not none) !=
+        (postgres_config is not none)
+    fail_msg: >-
+      Set exactly one of postgres_config_file or
+      postgres_config.
+
+- name: Validate, normalize, and render PostgreSQL schema file
+  ansible.builtin.set_fact:
+    postgres: >-
+      {{ postgres_config_file
+         | sql_config_file(postgres_environment) }}
+  when: postgres_config_file is not none
+  no_log: true
+
+- name: Validate, normalize, and render inline PostgreSQL schema
+  ansible.builtin.set_fact:
+    postgres: >-
+      {{ postgres_config
+         | sql_config(postgres_environment) }}
+  when: postgres_config is not none
+  no_log: true
+
+- name: Create requested databases
+  community.postgresql.postgresql_db:
+    name: "{{ item.value.name }}"
+    owner: "{{ postgres.provider.username }}"
+    state: present
+    maintenance_db: postgres
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+  loop: "{{ postgres.database | dict2items }}"
+  when: item.value.create
+  no_log: true
+
+- name: Install or update PostgreSQL extensions
+  community.postgresql.postgresql_ext:
+    name: "{{ item.1.name }}"
+    login_db: "{{ item.0.value.name }}"
+    state: present
+    version: latest
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+  loop: "{{ postgres.database | dict2items | subelements('value.extensions', skip_missing=True) }}"
+  no_log: true
+
+- name: Create or update login roles
+  community.postgresql.postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    state: present
+    login_db: postgres
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+  loop: "{{ postgres.users }}"
+  no_log: true
+
+- name: Apply role privileges
+  ansible.builtin.include_tasks: privileges.yml
+  loop: "{{ postgres.users | subelements('privileges', skip_missing=True) }}"
+  loop_control:
+    loop_var: postgres_user_privilege
+  vars:
+    postgres_role: "{{ postgres_user_privilege.0 }}"
+    postgres_privilege: "{{ postgres_user_privilege.1 }}"
+  when: >-
+    postgres_user_privilege.1.readwrite or
+    postgres_user_privilege.1.readonly
+  no_log: true
+
+- name: Execute rendered custom SQL
+  community.postgresql.postgresql_query:
+    login_db: "{{ item.database }}"
+    query: "{{ item.query_raw }}"
+    positional_args: "{{ item.params or omit }}"
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+  loop: "{{ postgres.custom_sql }}"
+  changed_when: true
+  no_log: true

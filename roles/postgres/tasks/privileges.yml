@@ -1,0 +1,109 @@
+---
+- name: Grant database connection
+  community.postgresql.postgresql_privs:
+    login_db: postgres
+    type: database
+    objs: "{{ postgres_privilege.db }}"
+    privs: CONNECT
+    roles: "{{ postgres_role.name }}"
+    state: present
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+
+- name: Grant schema usage
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgres_privilege.db }}"
+    type: schema
+    objs: "{{ postgres_privilege.db_schema }}"
+    privs: USAGE
+    roles: "{{ postgres_role.name }}"
+    state: present
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+
+- name: Grant schema creation to read/write roles
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgres_privilege.db }}"
+    type: schema
+    objs: "{{ postgres_privilege.db_schema }}"
+    privs: CREATE
+    roles: "{{ postgres_role.name }}"
+    state: present
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+  when: postgres_privilege.readwrite
+
+- name: Grant privileges on all current tables
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgres_privilege.db }}"
+    type: table
+    objs: ALL_IN_SCHEMA
+    schema: "{{ postgres_privilege.db_schema }}"
+    privs: "{{ 'SELECT,INSERT,UPDATE,DELETE' if postgres_privilege.readwrite else 'SELECT' }}"
+    roles: "{{ postgres_role.name }}"
+    state: present
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+  when: "'ALL' in postgres_privilege.tables"
+
+- name: Grant privileges on future tables
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgres_privilege.db }}"
+    type: default_privs
+    objs: TABLES
+    schema: "{{ postgres_privilege.db_schema }}"
+    privs: "{{ 'SELECT,INSERT,UPDATE,DELETE' if postgres_privilege.readwrite else 'SELECT' }}"
+    roles: "{{ postgres_role.name }}"
+    state: present
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+  when: "'ALL' in postgres_privilege.tables"
+
+- name: Grant privileges on named tables
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgres_privilege.db }}"
+    type: table
+    objs: "{{ item }}"
+    schema: "{{ postgres_privilege.db_schema }}"
+    privs: "{{ 'SELECT,INSERT,UPDATE,DELETE' if postgres_privilege.readwrite else 'SELECT' }}"
+    roles: "{{ postgres_role.name }}"
+    state: present
+    login_host: "{{ postgres.provider.host }}"
+    login_port: "{{ postgres.provider.port }}"
+    login_user: "{{ postgres.provider.username }}"
+    login_password: "{{ postgres.provider.password }}"
+    ssl_mode: "{{ postgres.provider.ssl_mode or ('verify-full' if postgres.provider.cert else ('require' if postgres.provider.mtls else 'prefer')) }}"
+    ca_cert: "{{ postgres.provider.cert }}"
+    ssl_cert: "{{ postgres.provider.mtls.cert if postgres.provider.mtls else omit }}"
+    ssl_key: "{{ postgres.provider.mtls.key if postgres.provider.mtls else omit }}"
+  loop: "{{ postgres_privilege.tables | reject('equalto', 'ALL') }}"
