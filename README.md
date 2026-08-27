@@ -59,6 +59,14 @@ docker run --rm --network host \
 
 `--network host` only makes sense on Linux, connecting to a DB exposed on the Docker host; omit it for a remote RDS endpoint.
 
+Prebuilt multi-arch (amd64/arm64) images are published to Docker Hub via the "Build and push Docker image" workflow (manual trigger, `.github/workflows/docker-publish.yml`):
+
+```bash
+docker run --rm --network host \
+  -v "$PWD:/work" -w /work \
+  ssrishang/ansible-sql-worker:latest -i localhost, playbook.yml
+```
+
 ## Examples
 
 1. Write a schema file describing the provider, databases, users, and any custom SQL. For example `postgres.yaml`:
